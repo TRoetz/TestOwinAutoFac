@@ -12,6 +12,8 @@ using Topshelf.Options;
 using Microsoft.Owin.StaticFiles;
 using Microsoft.Owin.Hosting;
 using TestOwinSelfHostWithAutoFac;
+using TestOwinSelfHostWithAutoFac.Attributes;
+using System.Configuration;
 
 class Program
 {
@@ -44,6 +46,11 @@ public class StartupConfig
       config.MapHttpAttributeRoutes();                                                        // using attribute based routing because I prefer it
 
       var builder = new Autofac.ContainerBuilder();
+      // Authentication Filter
+      builder.Register(c => new AuthoriseAttribute())
+         .AsWebApiAuthenticationFilterFor<StatsController>()
+         .InstancePerLifetimeScope();
+
       builder.RegisterApiControllers(Assembly.GetExecutingAssembly()).PropertiesAutowired();  // Create the container builder.
       builder.RegisterApiControllers(Assembly.GetExecutingAssembly());                        // Register the Web API controllers.
       builder.RegisterWebApiFilterProvider(config);                                           // optional
@@ -78,13 +85,16 @@ public class StatsService
 {
    public bool Start()
    {
+      WebServerConfig.AuthorizationEnabled = bool.Parse(ConfigurationManager.AppSettings["WebAPI_AuthorizationEnabled"]);
+      WebServerConfig.AuthorizationToken = ConfigurationManager.AppSettings["WebAPI_AuthorizationToken"];
+
       if (WebApplication == null)
       {
          WebApplication = WebApp.Start
          (
               new StartOptions
               {
-                 Port = 5999
+                 Port = int.Parse(ConfigurationManager.AppSettings["WebAPI_Port"]),
               },
               appBuilder =>
               {
@@ -120,8 +130,16 @@ public class StatsController : ApiController
    }
 
    [HttpGet]
-   [Route("api/emails/{id}")]
+   [Route("api/stats/{id}")]
    public IHttpActionResult get(int id)
+   {
+      return Ok(MyModel.GetStats());
+   }
+
+   [HttpPost]
+   [Authorize]
+   [Route("api/stat/{id}")]
+   public IHttpActionResult post(int id)
    {
       return Ok(MyModel.GetStats());
    }
