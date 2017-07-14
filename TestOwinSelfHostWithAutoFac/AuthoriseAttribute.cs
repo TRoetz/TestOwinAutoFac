@@ -87,7 +87,10 @@ namespace TestOwinSelfHostWithAutoFac.Attributes
       public void OnChallenge(HttpAuthenticationChallengeContext context)
       {
          IPrincipal incomingPrincipal = context.ActionContext.RequestContext.Principal;
-         Debug.WriteLine(String.Format("Incoming principal in custom auth filter ChallengeAsync method is authenticated: {0}", incomingPrincipal.Identity.IsAuthenticated));
+         if (incomingPrincipal != null)
+         {
+            Debug.WriteLine(String.Format("Incoming principal in custom auth filter ChallengeAsync method is authenticated: {0}", incomingPrincipal.Identity.IsAuthenticated));
+         }
 
       }
    }

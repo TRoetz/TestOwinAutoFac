@@ -8,12 +8,13 @@ using System.IO;
 using System.Reflection;
 using System.Web.Http;
 using Topshelf;
-using Topshelf.Options;
 using Microsoft.Owin.StaticFiles;
 using Microsoft.Owin.Hosting;
 using TestOwinSelfHostWithAutoFac;
 using TestOwinSelfHostWithAutoFac.Attributes;
 using System.Configuration;
+using Microsoft.Owin.Security;
+using System.Net.Http;
 
 class Program
 {
@@ -38,7 +39,7 @@ class Program
 }
 
 // lifted from http://autofac.readthedocs.org/en/latest/integration/webapi.html#owin-integration
-public class StartupConfig
+public partial class StartupConfig
 {
    public void Configure(IAppBuilder appBuilder)
    {
@@ -118,6 +119,14 @@ public class StatsService
    }
 }
 
+
+public class LoginViewModel
+{
+   public string Username { get; set; }
+
+   public string Password { get; set; }
+}
+
 // test controller
 public class StatsController : ApiController
 {
@@ -142,5 +151,25 @@ public class StatsController : ApiController
    public IHttpActionResult post(int id)
    {
       return Ok(MyModel.GetStats());
+   }
+
+   [HttpPost]
+   [Route("api/login")]
+   public IHttpActionResult login([FromBody] LoginViewModel model)
+   {
+      IAuthenticationManager authenticationManager = Request.GetOwinContext().Authentication;
+      var authService = new AdAuthenticationService(authenticationManager);
+
+      var authenticationResult = authService.SignIn(model.Username, model.Password);
+
+      if (authenticationResult.IsSuccess)
+      {
+         // we are in!
+         return Ok();
+      }
+      else
+      {
+         return Unauthorized();
+      }
    }
 }
